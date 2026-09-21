@@ -1,0 +1,258 @@
+---
+title: "Configuración, Exportación y Visualización de Resultados"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Configuración, Exportación y Visualización de Resultados}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 8,
+  fig.height = 5.5,
+  fig.align = "center",
+  out.width = "100%",
+  dpi = 300,
+  fig.retina = 2
+)
+```
+
+## Introducción
+
+El paquete `peruocc` está diseñado tanto para la exploración interactiva y rápida de ocurrencias de biodiversidad en memoria, como para flujos de trabajo reproducibles en producción y análisis espacial (SIG).
+
+Esta guía explica:
+1. Cómo configurar el directorio de almacenamiento y caché (`peruocc_data_dir()`).
+2. La diferencia entre consultas interactivas en memoria (`guardar_resultados = FALSE`) y persistencia en disco (`guardar_resultados = TRUE`).
+3. La función dedicada `exportar_resultados()` y los formatos generados (CSV, GeoJSON y Manifiesto de reproducibilidad).
+4. La visualización cartográfica con `graficar_ocurrencias()`.
+
+---
+
+## 1. Configuración del Directorio de Trabajo: `peruocc_data_dir()`
+
+La función `peruocc_data_dir()` permite centralizar opcionalmente la ubicación en el disco donde se almacenarán capas espaciales descargadas en caché y los resultados exportados.
+
+```{r setup}
+library(peruocc)
+```
+
+```{r, eval = FALSE}
+# Configurar el directorio raíz del proyecto para artefactos (opcional)
+peruocc_data_dir("mi-carpeta-proyecto")
+```
+
+### ¿Por qué es útil y cómo funciona?
+
+* **Control y Orden del Proyecto**: Mantiene todas las salidas y capas auxiliares organizadas en una única carpeta personalizada en lugar de dispersarlas en la raíz de trabajo.
+* **Caché Opcional de Geometrías**: Al configurar una ruta, el paquete guarda copias `.rds` en `cache/`. Las siguientes consultas a esa misma zona cargarán la geometría instantáneamente sin volver a descargarla de internet.
+* **Configuración Global Transparente**: Al ejecutar `peruocc_data_dir()`, la ruta se guarda en las opciones de R (`options(peruocc.data_dir = ...)`).
+
+### ¿Qué ocurre si NO ejecuto `peruocc_data_dir()`?
+
+**No habrá ningún error y las consultas funcionarán con normalidad.**
+* **Caché**: `peruocc` almacena las capas en la memoria RAM de la sesión (`.peruocc_mem_cache`), garantizando cero escrituras en disco no solicitadas.
+* **Exportaciones**: Si decides exportar archivos más adelante con `exportar_resultados()`, simplemente indica la carpeta deseada mediante el argumento `dir_salida` (por ejemplo, `dir_salida = tempdir()`).
+
+---
+
+## 2. Ejecución en Memoria vs. Guardado en Disco (`guardar_resultados`)
+
+Todas las funciones principales de búsqueda (`buscar_especies_distrito()`, `buscar_especies_provincia()`, `buscar_especies_peru()`) incluyen el argumento `guardar_resultados`.
+
+```r
+# Firma de la función
+buscar_especies_distrito(
+  distrito,
+  departamento = NULL,
+  provincia = NULL,
+  ...,
+  guardar_resultados = FALSE  # <- FALSE por defecto
+)
+```
+
+### Comparativa: Consultas Experimentales vs. Guardado Automático
+
+| Característica | `guardar_resultados = FALSE` (Por defecto / Experimental) | `guardar_resultados = TRUE` (Guardado Automático) |
+| :--- | :--- | :--- |
+| **Destino de datos** | Solo memoria RAM en la sesión de R. | Memoria RAM + archivos guardados en disco. |
+| **Velocidad de ejecución** | **Más rápida.** Evita la sobrecarga de I/O y serialización espacial. | Requiere tiempo adicional para escribir CSV, GeoJSON y JSON. |
+| **Archivos generados** | Ninguno. | `.csv`, `.geojson` y `manifiesto_*.json` en la subcarpeta `processed/`. |
+| **Casos de uso** | Análisis exploratorio, filtrado rápido, visualización interactiva y pruebas de parámetros. | Pipelines automatizados, ejecuciones desatendidas o procesamiento en lotes (*batch*). |
+
+### Flujo de Trabajo Recomendado
+
+Para la mayoría de los análisis, la mejor práctica es **trabajar primero en memoria** y luego exportar selectivamente cuando los datos estén listos:
+
+```{r}
+# Paso 1: Consulta rápida en memoria (experimental / interactiva)
+resultado <- buscar_especies_distrito(
+  distrito = "Miraflores",
+  departamento = "Lima",
+  provincia = "Lima",
+  grupo = "flora",
+  limite_por_api = 150
+)
+
+# Paso 2: Inspeccionar resultados o graficar
+summary(resultado$ocurrencias)
+
+# Paso 3: Si los datos son conformes, exportar a disco
+# exportar_resultados(resultado)
+```
+
+---
+
+## 3. Exportación de Resultados y Estructura de Artefactos
+
+La función `exportar_resultados()` toma el objeto devuelto por cualquier búsqueda y genera artefactos estructurados y listos para interoperabilidad:
+
+```r
+# Exportación completa (por defecto a processed/ de peruocc_data_dir)
+archivos <- exportar_resultados(resultado)
+
+# Exportación personalizada a otra carpeta y formatos específicos:
+exportar_resultados(
+  resultado = resultado,
+  dir_salida = "mis_analisis/capas",
+  formatos = c("csv", "geojson")
+)
+```
+
+### Estructura del Directorio de Salida
+
+Cuando se utiliza `peruocc_data_dir("peruocc-output")`, la estructura queda organizada de la siguiente manera:
+
+```text
+peruocc-output/
+├── cache/
+│   ├── distritos_lima.rds                 # Geometrías oficiales cacheadas
+│   └── distritos_peru_completo.rds
+└── processed/
+    ├── ocurrencias_distrito_miraflores_flora.csv
+    ├── ocurrencias_distrito_miraflores_flora.geojson
+    └── manifiesto_distrito_miraflores_flora.json
+```
+
+### Descripción de los Formatos Exportados
+
+1. **`ocurrencias_*.csv`**:
+   - Tabla plana estandarizada según el estándar internacional **Darwin Core** (`scientificName`, `decimalLatitude`, `decimalLongitude`, `eventDate`, `source`, etc.).
+2. **`ocurrencias_*.geojson`**:
+   - Capa espacial vectorial de puntos con proyección geográfica WGS84 (EPSG:4326). Se puede arrastrar directamente a **QGIS**, **ArcGIS** o visores web (**Leaflet**, **Mapbox**).
+3. **`manifiesto_*.json`**:
+   - Manifiesto de auditoría y reproducibilidad científica. Registra:
+     - Fecha y hora exacta de la consulta (UTC).
+     - Versiones de R y paquetes utilizados (`sf`, `rgbif`, `rinat`, `geoperu`).
+     - Polígono de consulta en formato WKT (*Well-Known Text*).
+     - Parámetros y filtros aplicados (fechas, límites por API, reinos).
+4. **`results/mapa_*.png`** (opcional):
+   - Gráficos cartográficos en alta resolución (300 DPI) generados por `graficar_ocurrencias(..., guardar_mapa = TRUE)`.
+
+---
+
+## 4. Visualización Cartográfica con `graficar_ocurrencias()`
+
+La función `graficar_ocurrencias()` produce composiciones visuales basadas en `ggplot2`, integrando la delimitación poligonal oficial de fondo con las observaciones superpuestas.
+
+### Comparación por Proveedor de Datos (`source`)
+
+```{r mapa_fuente_viz, fig.alt = "Mapa de distribución de ocurrencias coloreado por repositorio de origen (GBIF vs iNaturalist)"}
+# Visualizar diferenciando aportes de GBIF vs iNaturalist
+mapa_fuente <- graficar_ocurrencias(
+  resultado_lista = resultado,
+  color_por = "source"
+)
+
+print(mapa_fuente)
+```
+
+### Comparación por Reino Biológico (`kingdom`)
+
+```{r mapa_reino_viz, fig.alt = "Mapa de distribución de ocurrencias coloreado por reino taxonómico (Plantae vs Animalia)"}
+# Visualizar distribución por reinos (Plantae, Animalia, Fungi, etc.)
+mapa_reino <- graficar_ocurrencias(
+  resultado_lista = resultado,
+  color_por = "kingdom"
+)
+
+print(mapa_reino)
+```
+
+### Personalización con Capas de `ggplot2`
+
+Dado que `graficar_ocurrencias()` retorna un objeto estándar de clase `ggplot`, puedes extenderlo y personalizarlo con cualquier tema, escala o etiqueta de `ggplot2`:
+
+```{r personalizacion_mapa, fig.alt = "Mapa temático personalizado con tema minimal y títulos adicionales de ggplot2"}
+library(ggplot2)
+
+mapa_personalizado <- mapa_fuente +
+  ggplot2::theme_minimal(base_size = 12) +
+  ggplot2::labs(
+    title = "Biodiversidad en Miraflores, Lima",
+    subtitle = "Ocurrencias consolidadas vía peruocc (GBIF + iNaturalist)",
+    caption = "Fuente: Repositorios de Biodiversidad / INEI geoperu"
+  )
+
+print(mapa_personalizado)
+```
+
+### Exportar el Mapa Directamente a Imagen
+
+```r
+# Genera y guarda automáticamente el mapa en results/ en formato PNG a 300 DPI
+mapa_guardado <- graficar_ocurrencias(
+  resultado_lista = resultado,
+  color_por = "source",
+  guardar_mapa = TRUE
+)
+```
+
+---
+
+## 5. Auditoría Científica: Estructura del Manifiesto JSON
+
+El archivo `manifiesto_*.json` almacena metadatos críticos para publicaciones científicas y auditorías reproducibles:
+
+```json
+{
+  "timestamp_utc": "2026-08-29T15:00:00Z",
+  "paquetes": {
+    "peruocc": "0.1.0",
+    "sf": "1.0-19",
+    "rgbif": "3.8.5",
+    "rinat": "0.1.10"
+  },
+  "parametros": {
+    "unidad": "Miraflores",
+    "nivel": "distrito",
+    "departamento": "Lima",
+    "grupo": "flora",
+    "limite_por_api": 150
+  },
+  "archivos_generados": [
+    "ocurrencias_distrito_miraflores_flora.csv",
+    "ocurrencias_distrito_miraflores_flora.geojson"
+  ]
+}
+```
+
+---
+
+## 6. Integración con SIG y Flujos Espaciales
+
+
+Las capas GeoJSON generadas pueden volver a cargarse en R para análisis espaciales posteriores (como modelos de distribución de especies o buffers):
+
+```r
+library(sf)
+
+# Cargar la capa de ocurrencias exportada
+capa_ocurrencias <- sf::st_read("peruocc-output/processed/ocurrencias_distrito_miraflores_flora.geojson")
+
+# Inspección rápida
+print(capa_ocurrencias)
+```

@@ -1,0 +1,191 @@
+---
+title: "Búsqueda de Ocurrencias con Polígonos Personalizados (Shapefile, GeoJSON y sf)"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Búsqueda de Ocurrencias con Polígonos Personalizados (Shapefile, GeoJSON y sf)}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  warning = FALSE,
+  message = TRUE,
+  fig.width = 8,
+  fig.height = 5.5,
+  fig.align = "center",
+  out.width = "100%",
+  dpi = 300,
+  fig.retina = 2
+)
+```
+
+## Introducción
+
+Además de realizar consultas sobre las delimitaciones político-administrativas oficiales del Perú (distritos y provincias), `peruocc` ofrece la función `buscar_especies_poligono()`.
+
+Esta utilidad permite delimitar áreas de estudio independientes, tales como:
+* Polígonos de muestreo de campo y cuadrantes de inventario.
+* Áreas Naturales Protegidas (ANP), concesiones forestales o zonas de amortiguamiento.
+* Áreas de influencia directa/indirecta (buffers) de proyectos ambientales.
+* Archivos espaciales en formatos estándar (`.shp`, `.geojson`, `.gpkg`, `.kml`).
+
+---
+
+## 1. Carga de Librerías y Configuración
+
+Cargamos `peruocc` y `sf` para el manejo de geometrías vectoriales:
+
+```{r setup}
+library(peruocc)
+library(sf)
+library(ggplot2)
+```
+
+---
+
+## 2. Creación de un Polígono de Estudio Personalizado
+
+Podemos definir cualquier geometría poligonal en R. En este ejemplo, creamos un polígono rectangular de interés biológico en la costa central del Perú (alrededor de los humedales y costa de Lima):
+
+```{r crear_poligono}
+# Coordenadas de los vértices del polígono (WGS84: Longitud, Latitud)
+coordenadas <- matrix(
+  c(
+    -77.04, -12.06,
+    -77.00, -12.06,
+    -77.00, -12.02,
+    -77.04, -12.02,
+    -77.04, -12.06
+  ),
+  ncol = 2,
+  byrow = TRUE
+)
+
+# Construir el objeto sf con proyección geográfica EPSG:4326 (WGS84)
+mi_zona_estudio <- sf::st_as_sf(
+  sf::st_sfc(sf::st_polygon(list(coordenadas)), crs = 4326)
+)
+
+print(mi_zona_estudio)
+```
+
+---
+
+## 3. Consulta Integrada de Biodiversidad: `buscar_especies_poligono()`
+
+Ejecutamos la búsqueda de flora dentro del polígono creado. `peruocc` gestiona automáticamente:
+1. La consulta síncrona a **GBIF** con simplificación adaptativa WKT en UTM.
+2. La consulta a **iNaturalist** por Bounding Box.
+3. El **recorte espacial exacto en memoria (`sf::st_intersects`)** para asegurar que cada punto caiga estrictamente dentro de la geometría.
+4. La estandarización y deduplicación bajo el estándar **Darwin Core**.
+
+```{r consulta_poligono}
+resultado_personalizado <- buscar_especies_poligono(
+  poligono = mi_zona_estudio,
+  nombre = "Area_Estudio_Costa",
+  grupo = "flora",
+  limite_por_api = 25
+)
+```
+
+---
+
+## 4. Inspección de los Resultados Obtenidos
+
+El objeto devuelto contiene la estructura estándar de `peruocc`:
+
+```{r resumen_datos}
+# Resumen de registros por base de datos
+print(resultado_personalizado$resumen)
+
+# Vista previa de las primeras ocurrencias
+head(resultado_personalizado$ocurrencias[, c("scientificName", "source", "eventDate", "decimalLatitude", "decimalLongitude")])
+```
+
+---
+
+## 5. Visualización Cartográfica con `graficar_ocurrencias()`
+
+Podemos generar composiciones en `ggplot2` superponiendo el polígono con las observaciones:
+
+### A. Clasificación por Proveedor de Datos (GBIF vs iNaturalist)
+
+```{r mapa_fuente, fig.alt = "Mapa de distribución de ocurrencias de flora en área de estudio personalizada coloreado por repositorio de origen (GBIF vs iNaturalist)"}
+mapa_fuentes <- graficar_ocurrencias(
+  resultado_lista = resultado_personalizado,
+  color_por = "source"
+)
+
+print(mapa_fuentes)
+```
+
+### B. Clasificación por Reino Taxonómico
+
+```{r mapa_reino, fig.alt = "Mapa de distribución de ocurrencias de flora en área de estudio personalizada coloreado por reino taxonómico"}
+mapa_reinos <- graficar_ocurrencias(
+  resultado_lista = resultado_personalizado,
+  color_por = "kingdom"
+)
+
+print(mapa_reinos)
+```
+
+---
+
+## 6. Caso Práctico: Área de Influencia / Buffer Alrededor de un Sitio de Muestreo
+
+Un escenario común en consultoría ambiental y monitoreo biológico es evaluar la biodiversidad en un radio o buffer de influencia alrededor de un punto de coordenadas (por ejemplo, una estación biológica o sitio arqueológico en Cusco):
+
+```{r ejemplo_buffer}
+# 1. Definir coordenadas del punto central (WGS84: Longitud, Latitud)
+punto_sitio <- sf::st_sfc(sf::st_point(c(-72.545, -13.163)), crs = 4326) # Valle de Urubamba / Machu Picchu
+
+# 2. Proyectar a UTM Zona 18S (EPSG:32718) para calcular un buffer métrico exacto de 3 km
+buffer_3km <- sf::st_buffer(sf::st_transform(punto_sitio, 32718), dist = 3000)
+
+# 3. Consultar directamente (peruocc retransforma automáticamente a WGS84)
+# resultado_buffer <- buscar_especies_poligono(
+#   poligono = buffer_3km,
+#   nombre = "Buffer_3km_Urubamba",
+#   grupo = "flora",
+#   limite_por_api = 50
+# )
+```
+
+`peruocc` detecta cualquier sistema de referencia de coordenadas (CRS proyectado o geográfico), repara topologías no válidas (`sf::st_make_valid`) y asegura la orientación antihoraria (CCW) antes de la consulta a las APIs.
+
+---
+
+## 7. Consulta desde un Archivo en Disco (Shapefile / GeoJSON)
+
+`buscar_especies_poligono()` también acepta directamente una ruta a un archivo espacial en disco (`.shp`, `.geojson`, `.gpkg` o `.kml`).
+
+Para demostrarlo, guardamos el polígono en un archivo `.geojson` y ejecutamos la consulta directamente desde la ruta:
+
+```{r consulta_archivo}
+# 1. Guardar el polígono temporalmente como archivo GeoJSON
+ruta_capa <- file.path(tempdir(), "mi_reserva.geojson")
+sf::st_write(mi_zona_estudio, ruta_capa, quiet = TRUE, delete_dsn = TRUE)
+
+# 2. Consultar directamente pasando la ruta del archivo
+resultado_desde_archivo <- buscar_especies_poligono(
+  poligono = ruta_capa,
+  nombre = "Reserva_Local",
+  grupo = "flora",
+  limite_por_api = 15
+)
+
+# 3. Exportar resultados con manifiesto de reproducibilidad en directorio temporal
+archivos_exportados <- exportar_resultados(resultado_desde_archivo, dir_salida = tempdir())
+```
+
+---
+
+## Siguientes Pasos
+
+* **[Flujo Espacial y Filtrado Topológico Riguroso](flujo_espacial.html)**: Detalles de simplificación métrica adaptativa y estrategias de partición.
+* **[Configuración, Exportación y Visualización](visualizacion_y_exportacion.html)**: Integración con SIG (QGIS/ArcGIS) y exportación de manifiestos.
+

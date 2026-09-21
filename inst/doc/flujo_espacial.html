@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Flujo Espacial y Filtrado Topológico Riguroso</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Flujo Espacial y Filtrado Topológico
+Riguroso</h1>
+
+
+
+<div id="arquitectura-espacial-de-peruocc" class="section level2">
+<h2>Arquitectura Espacial de peruocc</h2>
+<p>Uno de los principales retos al consultar APIs globales de
+biodiversidad mediante límites geográficos es la inconsistencia
+topológica y los falsos positivos en los bordes perimetrales.
+<code>peruocc</code> implementa un flujo espacial en 5 fases:</p>
+<pre class="text"><code>               ┌──────────────────────────────┐
+               │    Unidad Administrativa     │
+               │   (Distrito o Provincia)     │
+               └──────────────┬───────────────┘
+                              │
+               ┌──────────────▼──────────────┐
+               │  Geometría Oficial geoperu   │
+               │   + Validación / Caché RDS   │
+               └──────────────┬───────────────┘
+                              │
+             ┌────────────────┴────────────────┐
+             │                                 │
+  ┌──────────▼──────────┐           ┌──────────▼──────────┐
+  │  Consulta a GBIF    │           │ Consulta iNaturalist│
+  │  (WKT / Taxonomía)  │           │   (Bounding Box)    │
+  └──────────┬──────────┘           └──────────┬──────────┘
+             │                                 │
+             └────────────────┬────────────────┘
+                              │
+               ┌──────────────▼──────────────┐
+               │ Filtrado Espacial en R       │
+               │ (sf::st_intersects exacto)  │
+               └──────────────┬───────────────┘
+                              │
+               ┌──────────────▼──────────────┐
+               │ Objeto Consolidado Final     │
+               └─────────────────────────────┘</code></pre>
+<hr />
+</div>
+<div id="extracción-de-geometrías-y-caché-en-memoria" class="section level2">
+<h2>1. Extracción de Geometrías y Caché en Memoria</h2>
+<p>Para optimizar las consultas y evitar descargas repetitivas desde la
+infraestructura de datos espaciales, <code>peruocc</code> descarga los
+límites departamentales una sola vez y los almacena en memoria RAM
+durante la sesión:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">library</span>(peruocc)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="co"># Obtener la geometría oficial de un distrito</span></span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>distrito_sf <span class="ot">&lt;-</span> <span class="fu">obtener_poligono_distrito</span>(</span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>  <span class="at">distrito =</span> <span class="st">&quot;Machupicchu&quot;</span>,</span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>  <span class="at">departamento =</span> <span class="st">&quot;Cusco&quot;</span>,</span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>  <span class="at">provincia =</span> <span class="st">&quot;Urubamba&quot;</span></span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a>)</span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a><span class="co">#&gt; ℹ Descargando límites de CUSCO vía geoperu...</span></span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a></span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a>distrito_sf</span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a><span class="co">#&gt; Simple feature collection with 1 feature and 4 fields</span></span>
+<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a><span class="co">#&gt; Geometry type: POLYGON</span></span>
+<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a><span class="co">#&gt; Dimension:     XY</span></span>
+<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a><span class="co">#&gt; Bounding box:  xmin: -72.60072 ymin: -13.3354 xmax: -72.38303 ymax: -13.08235</span></span>
+<span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a><span class="co">#&gt; Geodetic CRS:  WGS 84</span></span>
+<span id="cb2-17"><a href="#cb2-17" tabindex="-1"></a><span class="co">#&gt;   departamento provincia    distrito     capital                       geometry</span></span>
+<span id="cb2-18"><a href="#cb2-18" tabindex="-1"></a><span class="co">#&gt; 1        CUSCO  URUBAMBA MACHUPICCHU MACHUPICCHU POLYGON ((-72.40501 -13.170...</span></span></code></pre></div>
+<div id="disolución-provincial" class="section level3">
+<h3>Disolución Provincial</h3>
+<p>Al solicitar una provincia, el paquete recupera todos los distritos
+constituyentes y realiza una unión espacial
+(<code>sf::st_union</code>):</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="co"># Obtener polígono provincial unificado</span></span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>provincia_sf <span class="ot">&lt;-</span> <span class="fu">obtener_poligono_provincia</span>(</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>  <span class="at">provincia =</span> <span class="st">&quot;Tambopata&quot;</span>,</span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>  <span class="at">departamento =</span> <span class="st">&quot;Madre de Dios&quot;</span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>)</span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="co">#&gt; ℹ Descargando límites de MADRE DE DIOS vía geoperu...</span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a>provincia_sf</span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="co">#&gt; Simple feature collection with 1 feature and 3 fields</span></span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a><span class="co">#&gt; Geometry type: POLYGON</span></span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a><span class="co">#&gt; Dimension:     XY</span></span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a><span class="co">#&gt; Bounding box:  xmin: -72.21888 ymin: -13.34172 xmax: -68.65228 ymax: -11.03353</span></span>
+<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a><span class="co">#&gt; Geodetic CRS:  WGS 84</span></span>
+<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a><span class="co">#&gt;    departamento provincia distrito                       geometry</span></span>
+<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a><span class="co">#&gt; 1 MADRE DE DIOS TAMBOPATA     &lt;NA&gt; POLYGON ((-70.03839 -12.608...</span></span></code></pre></div>
+<hr />
+</div>
+</div>
+<div id="orientación-geométrica-antihoraria-ccw" class="section level2">
+<h2>2. Orientación Geométrica Antihoraria (CCW)</h2>
+<p>Las especificaciones OGC y la API de GBIF exigen que los anillos
+exteriores de los polígonos sigan una orientación antihoraria
+(<em>Counter-Clockwise - CCW</em>) y los anillos interiores (huecos)
+sigan orientación horaria.</p>
+<p><code>peruocc</code> valida y corrige automáticamente la orientación
+mediante el cálculo del área con signo (Fórmula de Shoelace):</p>
+<p><span class="math display">\[\text{Área} = \frac{1}{2}
+\sum_{i=1}^{n-1} (x_i y_{i+1} - x_{i+1} y_i)\]</span></p>
+<hr />
+</div>
+<div id="simplificación-métrica-adaptativa-para-apis" class="section level2">
+<h2>3. Simplificación Métrica Adaptativa para APIs</h2>
+<p>La API de GBIF impone restricciones estrictas en la longitud de las
+cadenas WKT (Well-Known Text). Para polígonos administrativos con bordes
+complejos, <code>peruocc</code>:</p>
+<ol style="list-style-type: decimal">
+<li>Proyecta temporalmente a la zona UTM correspondiente según la
+longitud geográfica (Zona 17S, 18S o 19S en el Perú).</li>
+<li>Aplica simplificación topológica en metros
+(<code>sf::st_simplify(dTolerance = ...)</code>).</li>
+<li>Transforma de vuelta a WGS84 (EPSG:4326) para generar el WKT de
+consulta.</li>
+</ol>
+<hr />
+</div>
+<div id="filtrado-espacial-exacto-en-memoria" class="section level2">
+<h2>4. Filtrado Espacial Exacto en Memoria</h2>
+<p>Dado que iNaturalist solo admite filtrado por caja delimitadora
+(<em>Bounding Box</em>) y GBIF puede recibir un WKT simplificado, los
+registros crudos obtenidos pueden contener puntos fuera del perímetro
+oficial.</p>
+<p><code>peruocc</code> resuelve esto convirtiendo todos los registros
+recuperados a geometrías de punto y ejecutando una intersección
+topológica estricta con el polígono detallado original:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="co"># sf::st_intersects(puntos_sf, poligono_original_sf)</span></span></code></pre></div>
+<p>Garantizando que el 100% de las ocurrencias retenidas se encuentren
+verdaderamente dentro de la unidad territorial elegida.</p>
+<hr />
+</div>
+<div id="estrategias-de-particionamiento-espacial-para-grandes-unidades" class="section level2">
+<h2>5. Estrategias de Particionamiento Espacial para Grandes
+Unidades</h2>
+<p>El territorio peruano presenta provincias y distritos de enorme
+extensión territorial (particularmente en la cuenca amazónica, como
+<em>Maynas</em>, <em>Tambopata</em> o <em>La Convención</em>). Consultar
+estas áreas extensas en una única llamada puede provocar tiempos de
+espera agotados o truncamiento de registros por los límites máximos de
+las APIs.</p>
+<p><code>peruocc</code> ofrece el argumento
+<code>estrategia_espacial</code> en <code>buscar_especies_peru()</code>
+y <code>buscar_especies_poligono()</code>:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="fu">buscar_especies_peru</span>(</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>  <span class="at">nombre =</span> <span class="st">&quot;Tambopata&quot;</span>,</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>  <span class="at">nivel =</span> <span class="st">&quot;provincia&quot;</span>,</span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>  <span class="at">departamento =</span> <span class="st">&quot;Madre de Dios&quot;</span>,</span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a>  <span class="at">estrategia_espacial =</span> <span class="st">&quot;auto&quot;</span>,   <span class="co"># &quot;auto&quot;, &quot;segmentada&quot; o &quot;directa&quot;</span></span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a>  <span class="at">max_area_ha =</span> <span class="dv">1000</span>,             <span class="co"># Área objetivo por tesela</span></span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a>  <span class="at">max_lotes =</span> <span class="dv">16</span><span class="dt">L</span>                 <span class="co"># Límite de macro-bloques de seguridad</span></span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a>)</span></code></pre></div>
+<div id="modos-de-operación" class="section level3">
+<h3>Modos de Operación:</h3>
+<ol style="list-style-type: decimal">
+<li><strong><code>&quot;auto&quot;</code> (Predeterminado)</strong>:
+<ul>
+<li>En <strong>provincias</strong>, descarga distrito por distrito y
+consolida al final, garantizando que si un distrito falla, los demás
+queden guardados en checkpoints <code>.rds</code>.</li>
+<li>En <strong>distritos o polígonos extensos</strong> (superiores a
+50,000 ha), divide la geometría automáticamente en macro-bloques de
+teselación espacial para realizar consultas en paralelo seguro.</li>
+</ul></li>
+<li><strong><code>&quot;segmentada&quot;</code></strong>:
+<ul>
+<li>Fuerza la división del polígono en una cuadrícula adaptativa basada
+en <code>max_area_ha</code>. Ideal para grandes áreas de estudio o
+estudios de alta densidad de registros.</li>
+</ul></li>
+<li><strong><code>&quot;directa&quot;</code></strong>:
+<ul>
+<li>Envía el polígono completo en una sola llamada sin teselar.
+Recomendado únicamente para distritos urbanos pequeños o geometrías de
+reducida extensión.</li>
+</ul></li>
+</ol>
+</div>
+<div id="checkpoints-y-resiliencia-en-lotes" class="section level3">
+<h3>Checkpoints y Resiliencia en Lotes</h3>
+<p>Cada lote procesado escribe un checkpoint intermedio en el directorio
+de caché (<code>peruocc_data_dir()</code>). Si la conexión a internet se
+interrumpe durante una descarga extensa, volver a ejecutar la misma
+función <strong>reanudará la extracción desde el último lote
+completado</strong>, sin repetir consultas previas ni duplicar
+registros.</p>
+<hr />
+</div>
+</div>
+<div id="siguientes-pasos" class="section level2">
+<h2>Siguientes Pasos</h2>
+<p>Para consultar delimitaciones fuera del marco administrativo oficial
+(como Áreas Naturales Protegidas, buffers o shapefiles propios),
+consulta la viñeta especializada:</p>
+<ul>
+<li><strong><a href="busqueda_poligono_usuario.html">Búsqueda de
+Ocurrencias con Polígonos Personalizados</a></strong></li>
+</ul>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

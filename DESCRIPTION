@@ -1,0 +1,33 @@
+Package: peruocc
+Title: Query and Standardize Biodiversity Occurrences in Peru
+Version: 0.1.0
+Authors@R: 
+    person("Paul E.", "Santos Andrade", , 
+    "paulefrens@gmail.com", role = c("aut", "cre", "cph"),
+           comment = c(ORCID = "0000-0002-6635-0375"))
+Description: Facilitates the retrieval, spatial validation, and integration
+    of flora and fauna occurrence records across administrative units (districts
+    and provinces) in Peru. Retrieves official boundary geometries via
+    'geoperu', queries and consolidates observations from the Global Biodiversity
+    Information Facility (GBIF, <https://www.gbif.org/>) and 'iNaturalist'
+    (<https://www.inaturalist.org/>), and standardizes attributes into a unified
+    Darwin Core aligned structure. Designed for biodiversity assessments and
+    spatial workflows within user-defined areas of interest.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Depends: R (>= 4.1.0)
+Imports: cli, dplyr, geoperu, ggplot2, jsonlite, readr, rgbif, rinat,
+        sf
+Suggests: knitr, rmarkdown, testthat (>= 3.0.0)
+VignetteBuilder: knitr
+Config/testthat/edition: 3
+URL: https://paulesantos.github.io/peruocc/
+BugReports: https://github.com/PaulESantos/peruocc/issues
+Config/roxygen2/version: 8.1.0
+NeedsCompilation: no
+Packaged: 2026-09-11 03:06:36 UTC; PC
+Author: Paul E. Santos Andrade [aut, cre, cph] (ORCID:
+    <https://orcid.org/0000-0002-6635-0375>)
+Maintainer: Paul E. Santos Andrade <paulefrens@gmail.com>
+Repository: CRAN
+Date/Publication: 2026-09-21 17:50:02 UTC
